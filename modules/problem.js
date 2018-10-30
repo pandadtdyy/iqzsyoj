@@ -70,6 +70,7 @@ app.get('/problems', async (req, res) => {
 
     res.render('problems', {
       allowedManageTag: res.locals.user && await res.locals.user.hasPrivilege('manage_problem_tag'),
+      allowedManageProblem: res.locals.user && await res.locals.user.hasPrivilege('manage_problem'),
       problems: problems,
       paginate: paginate,
       curSort: sort,
