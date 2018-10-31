@@ -33,13 +33,20 @@ app.get('/ranklist', async (req, res) => {
     if (!['ac_num', 'rating', 'id', 'username'].includes(sort) || !['asc', 'desc'].includes(order)) {
       throw new ErrorMessage('错误的排序参数。');
     }
-    let paginate = syzoj.utils.paginate(await User.count({ is_show: true }), req.query.page, syzoj.config.page.ranklist);
-    let ranklist = await User.query(paginate, { is_show: true }, [[sort, order]]);
+    let paginate = syzoj.utils.paginate(await User.count({
+      is_show: true
+    }), req.query.page, syzoj.config.page.ranklist);
+    let ranklist = await User.query(paginate, {
+      is_show: true
+    }, [
+      [sort, order]
+    ]);
     await ranklist.forEachAsync(async x => x.renderInformation());
 
     res.render('ranklist', {
       ranklist: ranklist,
       paginate: paginate,
+      show_realname: res.locals.user && (await res.locals.user.hasPrivilege('see_realname')),
       curSort: sort,
       curOrder: order === 'asc'
     });
@@ -68,7 +75,11 @@ app.get('/find_user', async (req, res) => {
 app.get('/login', async (req, res) => {
   if (res.locals.user) {
     res.render('error', {
-      err: new ErrorMessage('您已经登录了，请先注销。', { '注销': syzoj.utils.makeUrl(['logout'], { 'url': req.originalUrl }) })
+      err: new ErrorMessage('您已经登录了，请先注销。', {
+        '注销': syzoj.utils.makeUrl(['logout'], {
+          'url': req.originalUrl
+        })
+      })
     });
   } else {
     res.render('login');
@@ -79,7 +90,11 @@ app.get('/login', async (req, res) => {
 app.get('/sign_up', async (req, res) => {
   if (res.locals.user) {
     res.render('error', {
-      err: new ErrorMessage('您已经登录了，请先注销。', { '注销': syzoj.utils.makeUrl(['logout'], { 'url': req.originalUrl }) })
+      err: new ErrorMessage('您已经登录了，请先注销。', {
+        '注销': syzoj.utils.makeUrl(['logout'], {
+          'url': req.originalUrl
+        })
+      })
     });
   } else {
     res.render('sign_up');
@@ -107,7 +122,11 @@ app.get('/user/:id', async (req, res) => {
     await user.renderInformation();
     user.emailVisible = user.public_email || user.allowedEdit;
 
-    const ratingHistoryValues = await RatingHistory.query(null, { user_id: user.id }, [['rating_calculation_id', 'asc']]);
+    const ratingHistoryValues = await RatingHistory.query(null, {
+      user_id: user.id
+    }, [
+      ['rating_calculation_id', 'asc']
+    ]);
     const ratingHistories = [{
       contestName: "初始积分",
       value: syzoj.config.default.user.rating,
@@ -122,7 +141,9 @@ app.get('/user/:id', async (req, res) => {
         value: history.rating_after,
         delta: history.rating_after - ratingHistories[ratingHistories.length - 1].value,
         rank: history.rank,
-        participants: await ContestPlayer.count({ contest_id: contest.id })
+        participants: await ContestPlayer.count({
+          contest_id: contest.id
+        })
       });
     }
     ratingHistories.reverse();
@@ -193,6 +214,9 @@ app.post('/user/:id/edit', async (req, res) => {
       user.username = req.body.username;
       user.email = req.body.email;
     }
+
+    if (!syzoj.utils.isValidRealName(req.body.realname.trim())) throw new ErrorMessage('无效的真实姓名。');
+    user.realname = req.body.realname.trim();
 
     if (res.locals.user && res.locals.user.is_admin) {
       if (!req.body.privileges) {
